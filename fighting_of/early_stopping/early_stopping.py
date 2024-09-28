@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 import seaborn as sns
@@ -15,24 +16,36 @@ os.makedirs('Results', exist_ok=True)
 mnist = tf.keras.datasets.mnist
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
-x_train = tf.keras.utils.normalize(x_train, axis=1)
-x_test = tf.keras.utils.normalize(x_test, axis=1)
+x_train = np.expand_dims(x_train, axis=-1)  # Add a channel dimension
+x_test = np.expand_dims(x_test, axis=-1)
+
+# Normalize the data
+x_train = x_train / 255.0
+x_test = x_test / 255.0
 
 # Define the neural network model
-model = tf.keras.models.Sequential()
-model.add(tf.keras.layers.Flatten(input_shape=(28, 28)))
-model.add(tf.keras.layers.Dense(128, activation=tf.nn.relu))
-model.add(tf.keras.layers.Dense(128, activation=tf.nn.relu))
-model.add(tf.keras.layers.Dense(10, activation=tf.nn.softmax))
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+    tf.keras.layers.Dense(128, activation=tf.nn.relu),
+    tf.keras.layers.Dense(128, activation=tf.nn.relu),
+    tf.keras.layers.Dense(10, activation=tf.nn.softmax)
+])
 
 # Compile the model
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-# Train the model
-history = model.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
+# Define early stopping callback
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+# Train the model with early stopping
+history = model.fit(x_train, y_train,
+                    epochs=50, 
+                    validation_data=(x_test, y_test), 
+                    callbacks=[early_stopping],
+                    verbose=1)
 
 # Evaluate the model on the test set
-test_loss, test_accuracy = model.evaluate(x_test, y_test)
+test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
 print(f"Accuracy (percentages of correctly classified instances): {test_accuracy * 100:.2f}%")
 
 # Custom Classification Report without F1-score and support
@@ -68,7 +81,7 @@ plt.plot(history.history['val_accuracy'], label='Test')
 plt.title('Model Accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
-plt.xticks(ticks=np.arange(0, 11, 1))  # Adjust x-axis to go up to 10
+plt.xticks(ticks=np.arange(0, 51, 5))  # Adjust x-axis to go up to 50
 plt.legend(loc='upper left')
 plt.savefig('Results/model_accuracy.png')  # Save the accuracy figure to "Results" folder
 plt.show()
@@ -80,7 +93,7 @@ plt.plot(history.history['val_loss'], label='Test')
 plt.title('Model Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
-plt.xticks(ticks=np.arange(0, 11, 1))  # Adjust x-axis to go up to 10
+plt.xticks(ticks=np.arange(0, 51, 5))  # Adjust x-axis to go up to 50
 plt.legend(loc='upper left')
 plt.savefig('Results/model_loss.png')  # Save the loss figure to "Results" folder
 plt.show()
