@@ -1,2 +1,2 @@
 # Intro_to_ai
-פרוייקט מעשי בקורס "מבוא לבינה מלאכותית" של פרופסור ראובן כהן.
+A practical project in the "Introduction to Artificial Intelligence" course by Professor Reuven Cohen.
